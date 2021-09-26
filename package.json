@@ -1,13 +1,28 @@
 {
   "scripts": {
-		"start": "node app.js",
-		"test": "echo \"Error: no test specified\" && exit 1"
-	},
+    "start": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
   "dependencies": {
     "express": "^4.17.1",
     "socket.io": "^4.2.0"
   },
   "engines": {
-		"node": "4.1.x"
-	}
+    "node": "4.1.x"
+  },
+  "name": "free66",
+  "version": "1.0.0",
+  "main": "app.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/doonamm/myServer2.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/doonamm/myServer2/issues"
+  },
+  "homepage": "https://github.com/doonamm/myServer2#readme",
+  "description": ""
 }
