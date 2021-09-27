@@ -34,11 +34,7 @@ IO.sockets.on('connection', function(socket){
 
     PLAYER_LIST[id] = new Player(NewPlayerData(id));
 
-    PLAYER_INIT.push({
-        id: id,
-        w: PLAYER_LIST[id].w,
-        color: PLAYER_LIST[id].color
-    });
+    PLAYER_INIT.push(PLAYER_LIST[id].getInitialPack());
 
     IO.sockets.emit('connected', {
         players: PLAYER_INIT,
@@ -132,9 +128,13 @@ function Bomb(data){
         }
     }
     this.checkExplodeArea = (id, x, y, w)=>{
+        if(this.shooterId == id)
+            return;
         const distance = GetDistance({x: this.x, y: this.y}, {x, y});
         if(distance <= this.r + w){
-            PLAYER_LIST[id].reset();
+            PLAYER_LIST[id].hp--;
+            if(PLAYER_LIST[id].hp == 0)
+                PLAYER_LIST[id].reset();
         }
     }
     this.removeBomb = ()=>{
@@ -232,6 +232,12 @@ function NewBombData({shooterId, x, y, color, angle}){
 function Player(data){
     GameObject.call(this, data);
     this.stickyObject = [];
+    this.hp = data.hp;
+    this.maxHp = data.maxHp;
+    this.bullet = data.maxBullet;
+    this.maxBullet = data.maxBullet;
+    this.coolDown = 0;
+    this.maxCoolDown = data.maxCoolDown;
     this.aim = {
         x: 0,
         y: 0
@@ -247,7 +253,10 @@ function Player(data){
         return{
             id: this.id,
             w: this.w,
-            color: this.color
+            color: this.color,
+            maxHp: this.maxHp,
+            maxBullet: this.maxBullet,
+            maxCoolDown: this.maxCoolDown
         }
     }
     this.getPack = ()=>{
@@ -255,16 +264,23 @@ function Player(data){
             id: this.id,
             x: this.x,
             y: this.y,
+            bullet: this.bullet,
+            hp: this.hp,
+            coolDown: this.coolDown
         }
     }
     this.update = ()=>{
         this.updatePosition();
         this.checkCollision();
         this.shoot();
+        this.coolingDown();
     }
     this.shoot = ()=>{ 
-        if(this.status.shoot){
+        if(this.bullet <= 0){
             this.status.shoot = false;
+            return;
+        }
+        if(this.status.shoot){
             const bomp = new Bomb(NewBombData({
                 shooterId: this.id,
                 x: this.x,
@@ -273,14 +289,24 @@ function Player(data){
                 angle: Math.atan2(this.aim.y - this.y, this.aim.x - this.x)
             }));
             BOMP_LIST[bomp.id] = bomp;
-            const init_data = {
-                id: bomp.id,
-                w: bomp.w,
-                color: bomp.color,
-                r: bomp.r
-            };
+            const init_data = bomp.getInitialPack();
             BOMP_INIT.push(init_data);
-            NEW_BOMP.push(init_data)
+            NEW_BOMP.push(init_data);
+
+            this.status.shoot = false;
+            this.bullet--;
+        }
+    }
+    this.coolingDown = ()=>{
+        if(this.bullet < this.maxBullet){
+            if(this.coolDown > 0){
+                this.coolDown--;
+                if(this.coolDown == 0)
+                    this.bullet++;
+            }
+            else{
+                this.coolDown = this.maxCoolDown;
+            }
         }
     }
     this.updatePosition = ()=>{
@@ -325,6 +351,7 @@ function Player(data){
     this.reset = () =>{
         this.x = 250;
         this.y = 250;
+        this.hp = this.maxHp;
         for(const id of this.stickyObject){
             BOMP_LIST[id].speed = 0;
         }
@@ -375,7 +402,11 @@ function NewPlayerData(id){
         y: 250,
         w: 20,
         speed: 10,
-        color: RandomColor()
+        color: RandomColor(),
+        hp: 10,
+        maxHp: 10,
+        maxBullet: 4,
+        maxCoolDown: 80
     }
 }
 

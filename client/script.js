@@ -10,9 +10,20 @@ const DIRECTION = {
     'ArrowDown': 'down',
     'Space': 'shoot'
 }
+const STATE = {
+    'left': false,
+    'right': false,
+    'up': false,
+    'down': false
+}
 const PLAYER_OFFSET = {};
 const BOMP_OFFSET = {};
 const MINCOUNT = 10;
+const HP_WIDTH = 40;
+const HP_HEIGHT = 5;
+const BULLET_BAR_W = 10;
+const BULLET_BAR_H = 5;
+const BULLET_BAR_SPACING = 2;
 
 const App = ()=>{
     const canvas = document.getElementById('cvs');
@@ -29,9 +40,39 @@ const App = ()=>{
         ctx.clearRect(0, 0, canvas_w, canvas_h);
         for(const player of data.update.players){
             if(player){
-                const {w, color} = PLAYER_OFFSET[player.id];
+                const {w, color, maxHp, maxBullet, middleBullet, maxCoolDown} = PLAYER_OFFSET[player.id];
                 ctx.fillStyle = color;
                 ctx.fillRect(player.x - w/2, player.y - w/2, w, w);
+
+                //padding hp
+                const hpLen = HP_WIDTH * player.hp / maxHp;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(player.x - HP_WIDTH/2, player.y - 30, hpLen, HP_HEIGHT);
+                //border hp
+                ctx.strokeStyle = 'red';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(player.x - HP_WIDTH/2, player.y - 30, HP_WIDTH, HP_HEIGHT);
+
+                //bullet bar
+                for(let i = 0; i < maxBullet; i++){
+                    if(i <= player.bullet){
+                        let x = 0;
+                        
+                        if(i != middleBullet){
+                            const del = middleBullet - i;
+                            x = del * BULLET_BAR_W + del * BULLET_BAR_SPACING;
+                        }
+                        ctx.fillStyle = '#995';
+                        if(i == player.bullet){
+                            if(player.coolDown != 0){
+                                const cooldownLen = 1 - player.coolDown/maxCoolDown;
+                                ctx.fillRect(player.x - x - BULLET_BAR_W/2, player.y - 22, BULLET_BAR_W * cooldownLen, BULLET_BAR_H);
+                            }
+                        }
+                        else
+                            ctx.fillRect(player.x - x - BULLET_BAR_W/2, player.y - 22, BULLET_BAR_W, BULLET_BAR_H);
+                    }
+                }
             }
         }
         for(const new_bomp of data.initBomps){
@@ -85,7 +126,11 @@ const App = ()=>{
             if(player){
                 PLAYER_OFFSET[player.id] = {
                     w: player.w,
-                    color: player.color
+                    color: player.color,
+                    maxBullet: player.maxBullet,
+                    maxHp: player.maxHp,
+                    maxCoolDown: player.maxCoolDown,
+                    middleBullet: player.maxBullet % 2 == 0 ? player.maxBullet / 2 - 0.5 : Math.floor(player.maxBullet/2)
                 }
             }
         }
@@ -100,7 +145,6 @@ const App = ()=>{
                 }
             }
         }
-        console.log(Object.keys(BOMP_OFFSET), Object.keys(BOMP_OFFSET).length);
     }
 
     function OnDisconnected(id){
@@ -120,10 +164,14 @@ const App = ()=>{
             case 'ArrowRight':
             case 'ArrowUp':
             case 'ArrowDown':
-                socket.volatile.emit('handleInput', {
-                    type: 'keydown',
-                    state: DIRECTION[e.code]
-                });
+                const direc = DIRECTION[e.code];
+                if(STATE[direc] == false){
+                    socket.volatile.emit('handleInput', {
+                        type: 'keydown',
+                        state: direc
+                    });
+                    STATE[direc] = true;
+                }
                 break;
         }
     });
@@ -141,6 +189,7 @@ const App = ()=>{
                     type: 'keyup',
                     state: DIRECTION[e.code]
                 });
+                STATE[DIRECTION[e.code]] = false;
                 break;
         }
     });
