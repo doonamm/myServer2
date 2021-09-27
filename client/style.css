@@ -4,5 +4,8 @@
     padding: 0;
 }
 .cvs{
-    border: 1px solid #000;
+    background: #fff;
+}
+body{
+    background: darkcyan;
 }
