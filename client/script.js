@@ -98,11 +98,13 @@ function UserInterface(){
     const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const inputColor = document.getElementById('input-color');
+    const reloadMessBtn = document.getElementById('scroll-mess-btn');
 
-    socket.on('messageResponse', MessageResponse)
-
+    socket.on('messageResponse', MessageResponse);
+    messageList.addEventListener('scroll', OnScroll)
     messageForm.addEventListener('submit', OnSubmit);
     inputColor.addEventListener('change', OnChangeColor);
+    reloadMessBtn.addEventListener('click', ScrollMessage);
 
     function OnChangeColor(e){
         color = e.currentTarget.value;
@@ -113,12 +115,28 @@ function UserInterface(){
         MessageRequest(messageInput.value);
         messageInput.value = '';        
     }
+    function OnScroll(e){
+        if(e.currentTarget.scrollTop == 0){
+            reloadMessBtn.classList.remove('show');
+        }
+    }
+    function ScrollMessage(){
+        messageList.scrollTop = 0;
+        reloadMessBtn.classList.remove('show');
+    }
     function MessageRequest(message){
         socket.volatile.emit('messageRequest', message);
     }
     function MessageResponse(res){
         if(res.success){
+            const isOnAuto = Math.floor(messageList.scrollTop) == 0 ? true : false;
             AddMessage(res.message);
+            if(isOnAuto){
+                messageList.scrollTop = 0;
+            }
+            else{
+                reloadMessBtn.classList.add('show');
+            }
         }
     }
     function AddMessage(message){
