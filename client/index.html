@@ -6,4 +6,45 @@
 </head>
 <body>
     <canvas id="cvs" class="cvs" width="500" height="500"></canvas>
+    <div id="client">
+        <div class="info">
+            <p>User: <span class="username-info">AIFQ</span></p>
+            <p>Id: #<span class="id-info">23131</span></p>
+            <p class="character-color">Color: <input id="input-color" value="#000000" type="color"></p>
+        </div>
+        <div class="section">
+            <div class="chatbox">
+                <div class="message-container">
+                    <ul>
+                        <!-- <li class="message">A: hello world</li>
+                        <li class="message">B: nice to meet you</li>
+                        <li class="message">C: hello there</li> -->
+                    </ul>
+                </div>
+                <form id="message-form">
+                    <input id="message-input" type="text">
+                </form>
+            </div>
+            <div class="button-container">
+                <button id="pvp-match">PvP Match</button>
+                <button id="bot-match">Boss Fight</button>
+            </div>
+        </div>
+    </div>
+    <div id="sign">
+        <form id="signin-form">
+            <label>
+                <span>Username:</span>
+                <input id="username" type="text"/>
+            </label>
+            <label>
+                <span>Password:</span>
+                <input id="password" type="password"/>
+            </label>
+            <div class="btn-container">
+                <button id="signInBtn" type="submit">Sign In</button>
+                <button id="signUpBtn" type="button">Sign Up</button>
+            </div>
+        </form>
+    </div>
 </body>

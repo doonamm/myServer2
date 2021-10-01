@@ -1,5 +1,5 @@
 const socket = io();
-const DIRECTION = {
+const DIREC_NOR = {
     'KeyA': 'left',
     'KeyD': 'right',
     'KeyW': 'up',
@@ -10,6 +10,18 @@ const DIRECTION = {
     'ArrowDown': 'down',
     'Space': 'shoot'
 }
+const DIREC_SWAP = {
+    'KeyA': 'left',
+    'KeyD': 'right',
+    'KeyW': 'down',
+    'KeyS': 'up',
+    'ArrowLeft': 'left',
+    'ArrowRight': 'right',
+    'ArrowUp': 'down',
+    'ArrowDown': 'up',
+    'Space': 'shoot'
+}
+var DIRECTION = DIREC_NOR;
 const STATE = {
     'left': false,
     'right': false,
@@ -24,18 +36,106 @@ const HP_HEIGHT = 5;
 const BULLET_BAR_W = 10;
 const BULLET_BAR_H = 5;
 const BULLET_BAR_SPACING = 2;
+var isSwap = false;
+var color = 'black';
 
 const App = ()=>{
+    UserLogin();
+    UserInterface();
+    Game();
+}
+function UserLogin(){
+    const loginForm = document.getElementById('signin-form');
+    const username = document.getElementById('username');
+    const password = document.getElementById('password');
+    const signUpBtn = document.getElementById('signUpBtn');
+
+    loginForm.addEventListener('submit', OnSignIn);
+    signUpBtn.addEventListener('click', OnSignUp);
+    socket.on('signInResponse', SignInResponse);
+    socket.on('signUpResponse', SignUpResponse);
+
+   
+    function OnSignUp(){
+        socket.volatile.emit('signUpRequest', {
+            username: username.value,
+            password: password.value
+        });
+    }
+    function SignUpResponse(res){
+        if(res.success){
+            alert('Sign up success!');
+        }
+        else{
+            alert(res.message);
+        }
+        password.value = '';
+    }
+    function OnSignIn(e){
+        e.preventDefault();
+        socket.volatile.emit('signInRequest', {
+            username: username.value,
+            password: password.value
+        });
+    }
+    function SignInResponse(res){
+        if(res.success){
+            document.getElementById('sign').classList.add('hide');
+            document.getElementById('client').classList.add('show');
+            color = res.color;
+            document.getElementById('input-color').value = res.color;
+            document.querySelector('.username-info').textContent = res.username;
+            document.querySelector('.id-info').textContent = res.id;
+        }
+        else{
+            alert(res.message);
+        }
+        password.value = '';
+    }
+}
+function UserInterface(){
+    const messageList = document.querySelector('.message-container ul');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const inputColor = document.getElementById('input-color');
+
+    socket.on('messageResponse', MessageResponse)
+
+    messageForm.addEventListener('submit', OnSubmit);
+    inputColor.addEventListener('change', OnChangeColor);
+
+    function OnChangeColor(e){
+        color = e.currentTarget.value;
+        socket.volatile.emit('changeColor', e.currentTarget.value);
+    }
+    function OnSubmit(e){
+        e.preventDefault();
+        MessageRequest(messageInput.value);
+        messageInput.value = '';        
+    }
+    function MessageRequest(message){
+        socket.volatile.emit('messageRequest', message);
+    }
+    function MessageResponse(res){
+        if(res.success){
+            AddMessage(res.message);
+        }
+    }
+    function AddMessage(message){
+        const li = document.createElement('li');
+        li.textContent = message;
+        messageList.insertBefore(li, messageList.firstChild);
+    }
+}
+function Game(){
     const canvas = document.getElementById('cvs');
     const canvas_w = 500;
     const canvas_h = 500;
     const ctx = canvas.getContext('2d');
-
-    socket.on('connected', OnConnected);
-    socket.on('disconnected', OnDisconnected);
+    
     socket.on('update', Update);
+    socket.on('new_connection', OnNewConnection);
 
-    // ctx.arc(x, y, radius, startAngle, endAngle, counterclockwise)
     function Update(data){
         ctx.clearRect(0, 0, canvas_w, canvas_h);
         for(const player of data.update.players){
@@ -47,11 +147,11 @@ const App = ()=>{
                 //padding hp
                 const hpLen = HP_WIDTH * player.hp / maxHp;
                 ctx.fillStyle = 'red';
-                ctx.fillRect(player.x - HP_WIDTH/2, player.y - 30, hpLen, HP_HEIGHT);
+                ctx.fillRect(player.x - HP_WIDTH/2, checkIsSwapY(player.y, 30, HP_HEIGHT), hpLen, HP_HEIGHT);
                 //border hp
                 ctx.strokeStyle = 'red';
                 ctx.lineWidth = 0.5;
-                ctx.strokeRect(player.x - HP_WIDTH/2, player.y - 30, HP_WIDTH, HP_HEIGHT);
+                ctx.strokeRect(player.x - HP_WIDTH/2, checkIsSwapY(player.y, 30, HP_HEIGHT), HP_WIDTH, HP_HEIGHT);
 
                 //bullet bar
                 for(let i = 0; i < maxBullet; i++){
@@ -66,11 +166,11 @@ const App = ()=>{
                         if(i == player.bullet){
                             if(player.coolDown != 0){
                                 const cooldownLen = 1 - player.coolDown/maxCoolDown;
-                                ctx.fillRect(player.x - x - BULLET_BAR_W/2, player.y - 22, BULLET_BAR_W * cooldownLen, BULLET_BAR_H);
+                                ctx.fillRect(player.x - x - BULLET_BAR_W/2, checkIsSwapY(player.y, 22, BULLET_BAR_H), BULLET_BAR_W * cooldownLen, BULLET_BAR_H);
                             }
                         }
                         else
-                            ctx.fillRect(player.x - x - BULLET_BAR_W/2, player.y - 22, BULLET_BAR_W, BULLET_BAR_H);
+                            ctx.fillRect(player.x - x - BULLET_BAR_W/2, checkIsSwapY(player.y, 22, BULLET_BAR_H), BULLET_BAR_W, BULLET_BAR_H);
                     }
                 }
             }
@@ -120,40 +220,22 @@ const App = ()=>{
                 delete BOMP_OFFSET[id];
         }
     }
-
-    function OnConnected(data){
-        for(const player of data.players){
-            if(player){
-                PLAYER_OFFSET[player.id] = {
-                    w: player.w,
-                    color: player.color,
-                    maxBullet: player.maxBullet,
-                    maxHp: player.maxHp,
-                    maxCoolDown: player.maxCoolDown,
-                    middleBullet: player.maxBullet % 2 == 0 ? player.maxBullet / 2 - 0.5 : Math.floor(player.maxBullet/2)
-                }
-            }
-        }
-        for(const bomp of data.bomps){
-            if(bomp){
-                BOMP_OFFSET[bomp.id] = {
-                    w: bomp.w,
-                    color: bomp.color,
-                    r: bomp.r,
-                    count: MINCOUNT,
-                    time: 0
-                }
-            }
+    function OnNewConnection(player){
+        PLAYER_OFFSET[player.id] = {
+            w: player.w,
+            color: player.color,
+            maxBullet: player.maxBullet,
+            maxHp: player.maxHp,
+            maxCoolDown: player.maxCoolDown,
+            middleBullet: player.maxBullet % 2 == 0 ? player.maxBullet / 2 - 0.5 : Math.floor(player.maxBullet/2)
         }
     }
 
-    function OnDisconnected(id){
-        delete PLAYER_OFFSET[id];
-        console.log(Object.keys(PLAYER_OFFSET), Object.keys(PLAYER_OFFSET).length);
+    function checkIsSwapY(val1, val2, del){
+        return isSwap ? val1 + val2 - del : val1 - val2;
     }
 
     document.addEventListener('keydown', (e)=>{
-        e.preventDefault();
         switch(e.code){
             case 'KeyA':
             case 'KeyD':
@@ -196,10 +278,13 @@ const App = ()=>{
     document.addEventListener('mousemove', (e)=>{
         e.preventDefault();
         const {clientX: x, clientY: y} = e;
-        socket.volatile.emit('mousemove', {x, y});
-    })
+        if(isSwap)
+            socket.volatile.emit('mousemove', {x: x, y: canvas_h - y});
+        else
+            socket.volatile.emit('mousemove', {x, y});
+    });
     document.addEventListener('mousedown', (e)=>{
-        e.preventDefault();
+        // e.preventDefault();
         socket.volatile.emit('handleInput', {
             type: 'keydown',
             state: 'shoot'

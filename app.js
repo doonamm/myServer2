@@ -11,6 +11,22 @@ APP.use(EXPRESS.static(__dirname + '/client'));
 SERVER.listen(process.env.PORT || 2000, ()=>console.log('\nServer started, listening...\n'));
 
 //main
+const ACCOUNT_DB = {
+    'nam': '321',
+    'thu': '123',
+}
+const Users = {
+    'nam': {
+        color: '#ddad9a',
+        isActive: false
+    },
+    'thu': {
+        color: RandomColor(),
+        isActive: false
+    },
+}
+const Clients = {};
+
 const PLAYER_LIST = {};
 const PLAYER_INIT = [];
 
@@ -29,40 +45,110 @@ const deletePack = {
 
 
 IO.sockets.on('connection', function(socket){
-    const id = RandomIDSocket();
-    console.log('Id:', id, '- connected');
-
-    PLAYER_LIST[id] = new Player(NewPlayerData(id));
-
-    PLAYER_INIT.push(PLAYER_LIST[id].getInitialPack());
-
-    IO.sockets.emit('connected', {
-        players: PLAYER_INIT,
-        bomps: BOMP_INIT
-    });
-
-    socket.on('disconnect', function(){
-        RemovePlayer(id);
-        delete socket;
-    });
-
-    socket.on('handleInput', function(data){
-        if(data.type == 'keydown'){
-            PLAYER_LIST[id].status[data.state] = true;
-        }
-        else if(data.type == 'keyup'){
-            PLAYER_LIST[id].status[data.state] = false;
+    socket.on('signUpRequest', function(user){
+        const isValidNewUser = CheckSignUpAccount(user, function(message){
+            socket.emit('signUpResponse', {
+                success: false,
+                message: message
+            });
+        });
+        if(isValidNewUser){
+            ACCOUNT_DB[user.username] = user.password;
+            Users[user.username] = {
+                color: RandomColor(),
+                isActive: false
+            };
+            socket.emit('signUpResponse', {
+                success: true,
+            });
+            console.log(ACCOUNT_DB);
         }
     });
-
-    socket.on('mousemove', (data)=>{
-        PLAYER_LIST[id].aim = data;
-    })
+    socket.on('signInRequest', function(user){
+        const isValidLogin = CheckSignInAccount(user, (message)=>{
+            socket.emit('signInResponse', {
+                success: false,
+                message: message
+            });
+        });
+        if(isValidLogin){
+            LogInAccount(socket, user.username);
+        }
+    });
 });
 
-setInterval(ClientUpdate, 15);
+setInterval(Update, 15);
 
 //function
+function Update(){
+
+}
+
+function CheckSignUpAccount(user,  callError){
+    if(user.username.trim() === ''){
+        callError('Username is empty');
+        return false;
+    }
+    if(user.password.trim() === ''){
+        callError('Password is empty');
+        return false;
+    }
+    if(ACCOUNT_DB[user.username]){
+        callError('Username is already exist');
+        return false;
+    }
+    return true;
+}
+
+function LogInAccount(socket, username){
+    console.log('id:', socket.id,'--- user:', username, '--- connected');
+    Clients[socket.id] = socket;
+    Users[username].isActive = true;
+    socket.emit('signInResponse', {
+        success: true,
+        color: Users[username].color,
+        username: username,
+        id: socket.id
+    });
+    socket.on('disconnect', function(){
+        console.log('Id:', socket.id, '--- user:', username, '--- disconnected');
+        Users[username].isActive = false;
+        delete Clients[socket.id];
+    });
+    socket.on('messageRequest', function(message){
+        if(message.trim() !== ''){
+            IO.sockets.emit('messageResponse', {
+                success: true,
+                message: `${username}: ${message}`
+            });
+        }
+        else{
+            IO.sockets.emit('messageResponse', {
+                success: false
+            });
+        }
+    });
+    socket.on('changeColor', function(color){
+        Users[username].color = color;
+    }); 
+}
+
+function CheckSignInAccount({username, password}, callError){
+    if(!ACCOUNT_DB[username]){
+        callError('User is not exist!');
+        return false;
+    }
+    if(ACCOUNT_DB[username] !== password){
+        callError('Wrong username or password!');
+        return false;
+    }
+    if(Users[username].isActive){
+        callError('User is online!');
+        return false;
+    }
+    return true;
+}
+
 function ClientUpdate(){
     for(const id in PLAYER_LIST){
         updatePack.players.push(PLAYER_LIST[id].getPack());
