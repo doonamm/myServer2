@@ -69,10 +69,13 @@ body{
     overflow: hidden;
 }
 .message-container ul{
-    overflow-y: auto;
     height: 100%;
     display: flex;
     flex-direction: column-reverse;
+    overflow-y: auto;
+}
+.message-container ul li{
+    word-break: break-all;
 }
 .button-container{
     display: flex;
