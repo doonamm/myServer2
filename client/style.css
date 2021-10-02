@@ -11,6 +11,7 @@ ul{
     display: none;
 }
 body{
+    background:#eee;
     overflow: hidden;
     position: absolute;
     color: #000;
@@ -26,41 +27,43 @@ body{
     align-items: center;
     width: 500px;
     height: 500px;
-    background: rgba(0, 0, 255, .6);
-    display: none;
+    background: #7781ff;
+    padding: 70px 0 100px;
+    /* display: none; */
 }
 #client.show{
-    display: block;
+    display: flex;
 }
 .info{
     letter-spacing: .5px;
     display: flex;
-    width: 100%;
-    justify-content: space-between;
+    flex-direction: column;
+    justify-content: space-evenly;
     align-items: center;
     color: #fff;
-    background: rgba(100, 0, 255, .8);
+    background: darkslategray;
     padding: 10px 15px;
-    box-shadow: 0 2px 20px -2px rgba(255, 255, 255, .1) inset, 0 -2px 20px -2px rgba(255, 255, 255, .2) inset;
+    min-width: 150px;
+    text-align: center;
+    font-size: 15px;
 }
 .info span{
     font-weight: normal;
 }
-.section{
+.bottom{
     width: 100%;
+    position: absolute;
+    top: 100%;
+    background:darkslategray;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 22px 15px 0;
+    justify-content: space-between;
 }
 .chatbox{
     width: 100%;
-    margin-right: 16px;
-    height: 400px;
+    height: 200px;
     display: flex;
     flex-direction: column;
-    background: rgba(255, 255, 255, .9);
-    border-radius: 7px;
+    padding: 8px;
 }
 .message-container{
     height: 100%;
@@ -68,6 +71,7 @@ body{
     padding-bottom: 4px;
     overflow: hidden;
     position: relative;
+    background: #ededed;
 }
 .message-container ul{
     height: 100%;
@@ -77,13 +81,6 @@ body{
 }
 .message-container ul li{
     word-break: break-all;
-}
-.button-container{
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    align-items: center;
-    margin-right: 0px;
 }
 #message-form{
     width: 100%;
@@ -105,19 +102,24 @@ input[type="color"]{
 input, button{
     cursor: pointer;
 }
+.button-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 0px;
+    max-width: 60px;
+}
 .button-container button{
-    margin-bottom: 20px;
+    margin: 0 15px;
     border: 0;
     background: #fff;
-    color: rgba(100, 0, 255, 1);
-    padding: 8px 3px 7px;
-    border-radius: 4px;
+    color: rgba(100, 0, 230, 1);
+    padding: 8px 3px 6px;
+    border-radius: 5px;
+    min-width: 55px;
+    min-height: 50px;
     font-size: 14px;
     letter-spacing: 1px;
-    transition: transform .2s linear;
-}
-.button-container button:hover{
-    transform: scale(1.1);
 }
 .character-color{
     display: flex;
@@ -133,11 +135,13 @@ input, button{
     justify-content: center;
     width: 500px;
     height: 500px;
+    /* display: none; */
 }
 #signin-form{
     box-shadow: 0 4px 10px rgba(0, 0, 0, .1), 0 2px 15px -3px rgba(0, 0, 0, .1);
     padding: 20px 30px 18px;
     border-radius: 5px;
+    background: #fff;
 }
 #sign label{
     margin-bottom: 8px;
@@ -184,5 +188,83 @@ input, button{
     display: none;
 }
 #scroll-mess-btn.show{
+    display: block;
+}
+.team{
+    display: flex;
+    width: 100%;
+    justify-content: space-evenly;
+    color: #fff;
+}
+.team li{
+    position: relative;
+    height: 60px;
+    width: 60px;
+    background: #fff;
+    border-radius: 10px;
+}
+.team li:first-child:before{
+    content: "";
+    display: block;
+    border: 8px solid transparent;
+    border-top-color: #a80;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.team img{
+    width: 35px;
+    max-height: 60px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.team p{
+    position: absolute;
+    top: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+#join-form button{
+    border: 0;
+    background: #fff;
+    color: rgba(100, 0, 230, 1);
+    font-size: 14px;
+    padding: 3px 4px;
+    letter-spacing: 1px;
+    height: 100%;
+}
+#join-form input{
+    outline: none;
+    border: 0;
+    height: 100%;
+    padding: 0 4px;
+    width: 100px;
+    margin-right: 5px;
+    color: rgba(100, 0, 230, 1);
+}
+#join-form{
+    display: flex;
+    align-items: center;
+    margin-top: -130px;
+    font-weight: normal;
+    font-size: 14px;
+}
+#out-room-btn{
+    border: 0;
+    background: #fff;
+    color: rgba(100, 0, 230, 1);
+    font-size: 14px;
+    padding: 7px 4px;
+    letter-spacing: 1px;
+    border-radius: 50%;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: none;
+}
+#out-room-btn.show{
     display: block;
 }

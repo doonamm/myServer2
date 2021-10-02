@@ -38,6 +38,7 @@ const BULLET_BAR_H = 5;
 const BULLET_BAR_SPACING = 2;
 var isSwap = false;
 var color = 'black';
+const avtUrl = `https://cdn-icons-png.flaticon.com/128/1077/1077063.png`;
 
 const App = ()=>{
     UserLogin();
@@ -86,6 +87,13 @@ function UserLogin(){
             document.getElementById('input-color').value = res.color;
             document.querySelector('.username-info').textContent = res.username;
             document.querySelector('.id-info').textContent = res.id;
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <img src=${avtUrl}>
+                <p>${res.username}</p>
+            `;
+            document.getElementById('team').appendChild(li);
         }
         else{
             alert(res.message);
@@ -98,14 +106,65 @@ function UserInterface(){
     const messageForm = document.getElementById('message-form');
     const messageInput = document.getElementById('message-input');
     const inputColor = document.getElementById('input-color');
+    const joinForm = document.getElementById('join-form');
+    const joinCode = document.querySelector('#join-form input');
+    const team = document.getElementById('team');
+    const idRoomInfo = document.querySelector('.id-info');
     const reloadMessBtn = document.getElementById('scroll-mess-btn');
+    const outRoomBtn = document.getElementById('out-room-btn');
+    const pvpBtn = document.getElementById('pvp-match');
+    const pvbBtn = document.getElementById('bot-match');
 
-    socket.on('messageResponse', MessageResponse);
     messageList.addEventListener('scroll', OnScroll)
     messageForm.addEventListener('submit', OnSubmit);
     inputColor.addEventListener('change', OnChangeColor);
     reloadMessBtn.addEventListener('click', ScrollMessage);
+    joinForm.addEventListener('submit', JoinSubmit);
+    joinCode.addEventListener('keydown', JoinInput);
+    outRoomBtn.addEventListener('click', OutRoom);
 
+    socket.on('messageResponse', MessageResponse);
+    socket.on('joinResponse', JoinResponse);
+    socket.on('roomUpdate', RoomUpdate);
+
+    joinCode.value = "#";
+
+    function OutRoom(){
+        socket.volatile.emit('outRoomRequest');
+        outRoomBtn.classList.remove('show');
+    }
+    function JoinInput(e){
+        if(e.target.value.length <= 1 && e.code == 'Backspace'){
+            e.preventDefault();
+        }
+    }
+    function JoinSubmit(e){
+        e.preventDefault();
+        socket.volatile.emit('joinRequest', joinCode.value.slice(1));
+    }
+    function AddTeamate(name){
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <img src=${avtUrl}>
+            <p>${name}</p>
+        `;
+        team.appendChild(li);
+    }
+    function RoomUpdate(data){
+        team.innerHTML = '';
+        idRoomInfo.textContent = data.id;
+        for(const {name} of data.list){
+            AddTeamate(name);
+        }
+    }
+    function JoinResponse(success){
+        if(!success){
+            alert('Can\'t find room');
+        }
+        else{
+            outRoomBtn.classList.add('show');
+        }
+    }
     function OnChangeColor(e){
         color = e.currentTarget.value;
         socket.volatile.emit('changeColor', e.currentTarget.value);

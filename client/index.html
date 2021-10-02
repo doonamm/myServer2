@@ -7,12 +7,17 @@
 <body>
     <canvas id="cvs" class="cvs" width="500" height="500"></canvas>
     <div id="client">
-        <div class="info">
-            <p>User: <span class="username-info">AIFQ</span></p>
-            <p>Id: #<span class="id-info">23131</span></p>
-            <p class="character-color">Color: <input id="input-color" value="#000000" type="color"></p>
+        <ul class="team" id="team"></ul>
+        <div class="button-container">
+            <button id="pvp-match">PvP Match</button>
+            <button id="bot-match">Boss Fight</button>
         </div>
-        <div class="section">
+        <form id="join-form">
+            <input type="text">
+            <button type="submit">Join</button>
+        </form>
+        <button id="out-room-btn">Out</button>
+        <div class="bottom">
             <div class="chatbox">
                 <div class="message-container">
                     <ul>
@@ -26,9 +31,10 @@
                     <input id="message-input" type="text">
                 </form>
             </div>
-            <div class="button-container">
-                <button id="pvp-match">PvP Match</button>
-                <button id="bot-match">Boss Fight</button>
+            <div class="info">
+                <p>User: <span class="username-info">AIFQ</span></p>
+                <p>Id: #<span class="id-info">23131</span></p>
+                <p class="character-color">Color: <input id="input-color" value="#000000" type="color"></p>
             </div>
         </div>
     </div>

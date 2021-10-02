@@ -14,18 +14,39 @@ SERVER.listen(process.env.PORT || 2000, ()=>console.log('\nServer started, liste
 const ACCOUNT_DB = {
     'nam': '321',
     'thu': '123',
+    '1': '1',
+    '2': '2',
+    '3': '3',
 }
 const Users = {
     'nam': {
         color: '#ddad9a',
-        isActive: false
+        isActive: false,
+        roomId: RandRoomId()
     },
     'thu': {
         color: RandomColor(),
-        isActive: false
+        isActive: false,
+        roomId: RandRoomId()
     },
+    '1': {
+        color: RandomColor(),
+        isActive: false,
+        roomId: RandRoomId()
+    },
+    '2': {
+        color: RandomColor(),
+        isActive: false,
+        roomId: RandRoomId()
+    },
+    '3': {
+        color: RandomColor(),
+        isActive: false,
+        roomId: RandRoomId()
+    }
 }
 const Clients = {};
+const Room = {};
 
 const PLAYER_LIST = {};
 const PLAYER_INIT = [];
@@ -56,12 +77,12 @@ IO.sockets.on('connection', function(socket){
             ACCOUNT_DB[user.username] = user.password;
             Users[user.username] = {
                 color: RandomColor(),
-                isActive: false
+                isActive: false,
+                roomId: RandRoomId()
             };
             socket.emit('signUpResponse', {
                 success: true,
             });
-            console.log(ACCOUNT_DB);
         }
     });
     socket.on('signInRequest', function(user){
@@ -77,12 +98,9 @@ IO.sockets.on('connection', function(socket){
     });
 });
 
-setInterval(Update, 15);
+// setInterval(Update, 15);
 
 //function
-function Update(){
-
-}
 
 function CheckSignUpAccount(user,  callError){
     if(user.username.trim() === ''){
@@ -100,20 +118,83 @@ function CheckSignUpAccount(user,  callError){
     return true;
 }
 
+function NewRoom(socketId){
+    return{
+        list: [],
+        hostId: socketId
+    }
+}
+function OutRoom(roomId, socketId){
+    Room[roomId].list.forEach(({id}, index)=>{
+        if(id == socketId){
+            Room[roomId].list.splice(index, 1);
+        }
+    });
+    if(Room[roomId].list.length === 0){
+        delete Room[roomId];
+    }
+    else{
+        TriggerRoomUpdate(roomId);
+        if(Room[roomId].hostId === socketId){
+            Room[roomId].hostId = Room[roomId].list[0].id;
+        }
+    }
+}
+function TriggerRoomUpdate(roomId){
+    for(const data of Room[roomId].list){
+        Clients[data.id].emit('roomUpdate', {
+            list: Room[roomId].list,
+            id: roomId
+        });
+    }
+}
+
 function LogInAccount(socket, username){
     console.log('id:', socket.id,'--- user:', username, '--- connected');
     Clients[socket.id] = socket;
     Users[username].isActive = true;
+    const roomId = Users[username].roomId;
+    const dataRoomUser = {
+        name: username,
+        color: Users[username].color,
+        id: socket.id
+    }
+    Room[roomId] = NewRoom(socket.id);
+    Room[roomId].list.push(dataRoomUser);
+    socket.on('outRoomRequest', function(){
+        if(Room[Users[username].roomId].list.length > 1){
+            OutRoom(Users[username].roomId, socket.id);
+            const newId = RandRoomId();
+            Users[username].roomId = newId;
+            Room[newId] = NewRoom(socket.id);
+            Room[newId].list.push(dataRoomUser);
+            TriggerRoomUpdate(newId);
+        }
+    });
+    socket.on('joinRequest', function(id){
+        if(Room[id] && Room[id].hostId !== socket.id && Room[id].list.length < 5){
+            OutRoom(Users[username].roomId, socket.id);
+            Room[id].list.push(dataRoomUser);
+            Users[username].roomId = id;
+            TriggerRoomUpdate(id);
+            socket.emit('joinResponse', true);
+        }
+        else{
+            socket.emit('joinResponse', false);
+        }
+    });
     socket.emit('signInResponse', {
         success: true,
         color: Users[username].color,
         username: username,
-        id: socket.id
+        id: Users[username].roomId
     });
     socket.on('disconnect', function(){
         console.log('Id:', socket.id, '--- user:', username, '--- disconnected');
         Users[username].isActive = false;
         delete Clients[socket.id];
+        OutRoom(Users[username].roomId, socket.id);
+        Users[username].roomId = RandRoomId();
     });
     socket.on('messageRequest', function(message){
         if(message.trim() !== ''){
@@ -503,8 +584,8 @@ function RandomColor(){
     return '#' + r.toString(16) + g.toString(16) + b.toString(16);
 }
 
-function RandomIDSocket(){
-    return RandomInRange(0, 999999).toString().padStart(6, '0');
+function RandRoomId(){
+    return RandomInRange(0, 99999).toString().padStart(6, '0');
 }
 
 function RandomInRange(min, max){
