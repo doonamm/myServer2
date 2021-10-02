@@ -29,7 +29,7 @@ body{
     height: 500px;
     background: #7781ff;
     padding: 70px 0 100px;
-    /* display: none; */
+    display: none;
 }
 #client.show{
     display: flex;
