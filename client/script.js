@@ -86,7 +86,7 @@ function UserLogin(){
             document.getElementById('input-color').value = res.color;
             document.querySelector('.username-info').textContent = res.username;
             document.querySelector('.id-info').textContent = res.id;
-
+            document.querySelector('.bottom').classList.add('show');
             const li = document.createElement('li');
             li.innerHTML = `
                 <img src=${avtUrl}>

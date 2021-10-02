@@ -1,29 +1,33 @@
 <!DOCTYPE html>
+
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.2.0/socket.io.min.js"></script>
     <script src="script.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <canvas id="cvs" class="cvs" width="500" height="500"></canvas>
-    <div id="client">
-        <ul class="team" id="team"></ul>
-        <div class="button-container">
-            <button id="pvp-match">PvP Match</button>
-            <button id="bot-match">Boss Fight</button>
+    <div class="GAME">
+        <canvas id="cvs" class="cvs" width="500" height="500"></canvas>
+        <div id="client">
+            <ul class="team" id="team"></ul>
+            <div class="button-container">
+                <button id="pvp-match">PvP Match</button>
+                <button id="bot-match">Boss Fight</button>
+            </div>
+            <form id="join-form">
+                <input type="text">
+                <button type="submit">Join</button>
+            </form>
+            <button id="out-room-btn">Out</button>
         </div>
-        <form id="join-form">
-            <input type="text">
-            <button type="submit">Join</button>
-        </form>
-        <button id="out-room-btn">Out</button>
         <div class="bottom">
             <div class="chatbox">
                 <div class="message-container">
                     <ul>
                         <!-- <li class="message">A: hello world</li>
-                        <li class="message">B: nice to meet you</li>
-                        <li class="message">C: hello there</li> -->
+                    <li class="message">B: nice to meet you</li>
+                    <li class="message">C: hello there</li> -->
                     </ul>
                     <button id="scroll-mess-btn">↓</button>
                 </div>
@@ -37,21 +41,21 @@
                 <p class="character-color">Color: <input id="input-color" value="#000000" type="color"></p>
             </div>
         </div>
-    </div>
-    <div id="sign">
-        <form id="signin-form">
-            <label>
-                <span>Username:</span>
-                <input id="username" type="text"/>
-            </label>
-            <label>
-                <span>Password:</span>
-                <input id="password" type="password"/>
-            </label>
-            <div class="btn-container">
-                <button id="signInBtn" type="submit">Sign In</button>
-                <button id="signUpBtn" type="button">Sign Up</button>
-            </div>
-        </form>
+        <div id="sign">
+            <form id="signin-form">
+                <label>
+                    <span>Username:</span>
+                    <input id="username" type="text" />
+                </label>
+                <label>
+                    <span>Password:</span>
+                    <input id="password" type="password" />
+                </label>
+                <div class="btn-container">
+                    <button id="signInBtn" type="submit">Sign In</button>
+                    <button id="signUpBtn" type="button">Sign Up</button>
+                </div>
+            </form>
+        </div>
     </div>
 </body>

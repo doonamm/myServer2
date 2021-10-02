@@ -58,8 +58,11 @@ body{
     position: absolute;
     top: 100%;
     background:darkslategray;
-    display: flex;
     justify-content: space-between;
+    display: none;
+}
+.bottom.show{
+    display: flex;
 }
 .chatbox{
     width: 100%;
@@ -270,4 +273,11 @@ input, button{
 }
 #out-room-btn.show{
     display: block;
+}
+.GAME{
+    width: 500px;
+    height: 500px;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
