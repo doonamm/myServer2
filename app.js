@@ -47,23 +47,17 @@ const Users = {
 }
 const Clients = {};
 const Room = {};
+const Match = [];
 
 const PLAYER_LIST = {};
 const PLAYER_INIT = [];
 
-const BOMP_LIST = {};
-const BOMP_INIT = [];
-const NEW_BOMP = [];
+const BOMB_LIST = {};
 
 const updatePack = {
     players: [],
     bomps: []
 };
-
-const deletePack = {
-    bomps: []
-}
-
 
 IO.sockets.on('connection', function(socket){
     socket.on('signUpRequest', function(user){
@@ -98,9 +92,33 @@ IO.sockets.on('connection', function(socket){
     });
 });
 
-// setInterval(Update, 15);
+setInterval(ClientUpdate, 15);
 
-//function
+
+function ClientUpdate(){
+    if(Match.length > 0){
+        for(const room of Match){
+            for(const {id: player_id} of room.list){
+                updatePack.players.push(PLAYER_LIST[player_id].getPack());
+                PLAYER_LIST[player_id].update();
+                const {w, x, y} = PLAYER_LIST[player_id];
+                for(const bomb_id in room.bombList){
+                    room.bombList[bomb_id].checkCollideObject(player_id, x, y, w);
+                }
+            }
+            for(const bomp_id in room.bombList){
+                updatePack.bomps.push(room.bombList[bomp_id].getPack());
+                room.bombList[bomp_id].update();
+            }
+            for(const {id} of room.list){
+                Clients[id].emit('update', updatePack)
+            }
+        
+            updatePack.players = [];
+            updatePack.bomps = [];
+        }
+    }
+}
 
 function CheckSignUpAccount(user,  callError){
     if(user.username.trim() === ''){
@@ -121,6 +139,7 @@ function CheckSignUpAccount(user,  callError){
 function NewRoom(socketId){
     return{
         list: [],
+        bombList: {},
         hostId: socketId
     }
 }
@@ -161,6 +180,35 @@ function LogInAccount(socket, username){
     }
     Room[roomId] = NewRoom(socket.id);
     Room[roomId].list.push(dataRoomUser);
+    socket.on('startMatchRequest', function(){
+        for(const {id: player_id, color} of Room[Users[username].roomId].list){
+            PLAYER_LIST[player_id] = new Player(NewPlayerData(player_id));
+            PLAYER_LIST[player_id].roomId = Users[username].roomId;
+            PLAYER_LIST[player_id].color = color;
+            BOMB_LIST[player_id]={};
+            PLAYER_INIT.push(PLAYER_LIST[player_id].getInitialPack());
+
+            Clients[player_id].on('handleInput', function(data){
+                if(data.type == 'keydown'){
+                    PLAYER_LIST[player_id].status[data.state] = true;
+                }
+                else if(data.type == 'keyup'){
+                    PLAYER_LIST[player_id].status[data.state] = false;
+                }
+            });
+        
+            Clients[player_id].on('mousemove', (data)=>{
+                PLAYER_LIST[player_id].aim = data;
+            })
+        }
+        for(const data of Room[Users[username].roomId].list){
+            Clients[data.id].emit('startMatchResponse', {
+                players: PLAYER_INIT,
+                swap: false
+            });
+        }
+        Match.push(Room[Users[username].roomId]);
+    });
     socket.on('outRoomRequest', function(){
         if(Room[Users[username].roomId].list.length > 1){
             OutRoom(Users[username].roomId, socket.id);
@@ -230,33 +278,6 @@ function CheckSignInAccount({username, password}, callError){
     return true;
 }
 
-function ClientUpdate(){
-    for(const id in PLAYER_LIST){
-        updatePack.players.push(PLAYER_LIST[id].getPack());
-        PLAYER_LIST[id].update();
-
-        const {w, x, y} = PLAYER_LIST[id];
-        for(const id_bomp in BOMP_LIST){
-            BOMP_LIST[id_bomp].checkCollideObject(id, x, y, w);
-        }
-    }
-    for(const id in BOMP_LIST){
-        updatePack.bomps.push(BOMP_LIST[id].getPack());
-        BOMP_LIST[id].update();
-    }
-
-    IO.emit('update', {
-        initBomps: NEW_BOMP,
-        update: updatePack,
-        delete: deletePack
-    });
-
-    updatePack.players = [];
-    updatePack.bomps = [];
-    deletePack.bomps = [];
-    NEW_BOMP.length = 0;;
-}
-
 function Bomb(data){
     GameObject.call(this, data);
     this.r = data.r;
@@ -268,26 +289,22 @@ function Bomb(data){
     this.currentDistance = 0;
     this.spX =  Math.round(Math.cos(data.angle) * this.speed);
     this.spY =  Math.round(Math.sin(data.angle) * this.speed);
-
-    this.getInitialPack = ()=>{
-        return{
-            id: this.id,
-            w: this.w,
-            color: this.color,
-            r: this.r,
-        }
-    }
+    this.timeEffect = 0;
+    this.countEffect = 20;
     this.getPack = ()=>{
         return{
-            id: this.id,
+            shooterId: this.shooterId,
+            w: this.w,
+            r: this.r,
             x: this.x,
-            y: this.y
+            y: this.y,
+            count: this.countEffect
         }
     }
     this.checkCollideObject = (id, x, y, w)=>{
         if(this.followObjectId !== null || this.shooterId == id || this.speed == 0)
             return;
-        const distance = GetDistance({x: this.x, y: this.y}, {x, y})
+        const distance = GetDistance({x: this.x, y: this.y}, {x, y});
         if(distance <= this.w + w){
             this.followObjectId = id;
             this.countDown = this.existTime;
@@ -307,16 +324,12 @@ function Bomb(data){
     this.removeBomb = ()=>{
         if(this.followObjectId !== null)
             PLAYER_LIST[this.followObjectId].removeStickyObject(this.id);
-        for(const id_player in PLAYER_LIST){
-            const {w, x, y} = PLAYER_LIST[id_player];
-            this.checkExplodeArea(id_player, x, y, w);
+        const roomId = PLAYER_LIST[this.shooterId].roomId;
+        for(const {id} of Room[roomId].list){
+            const {w, x, y} = PLAYER_LIST[id];
+            this.checkExplodeArea(id, x, y, w);
         }
-        BOMP_INIT.forEach((bomp, i)=>{
-            if(bomp.id === this.id)
-                delete BOMP_INIT[i];
-        });
-        deletePack.bomps.push(this.id);
-        delete BOMP_LIST[this.id];
+        delete Room[roomId].bombList[this.id];
     }
     this.updatePosition = ()=>{
         if(this.speed == 0)
@@ -349,6 +362,13 @@ function Bomb(data){
                 this.removeBomb();
             }
         }
+        if(this.timeEffect % 2 == 0){
+            this.countEffect += 10;
+        }
+        if(this.countEffect > 100){
+            this.countEffect = 20;
+        }
+        this.timeEffect++;
     }
     this.checkCollision = ()=>{
         let isCollide = false;
@@ -455,10 +475,7 @@ function Player(data){
                 color: this.color,
                 angle: Math.atan2(this.aim.y - this.y, this.aim.x - this.x)
             }));
-            BOMP_LIST[bomp.id] = bomp;
-            const init_data = bomp.getInitialPack();
-            BOMP_INIT.push(init_data);
-            NEW_BOMP.push(init_data);
+            Room[this.roomId].bombList[bomp.id] = bomp;
 
             this.status.shoot = false;
             this.bullet--;
@@ -519,8 +536,8 @@ function Player(data){
         this.x = 250;
         this.y = 250;
         this.hp = this.maxHp;
-        for(const id of this.stickyObject){
-            BOMP_LIST[id].speed = 0;
+        for(const bomb_id of this.stickyObject){
+            Room[this.roomId].bombList[bomb_id].speed = 0;
         }
     }
     this.removeStickyObject = (id_bomp)=>{
@@ -570,8 +587,8 @@ function NewPlayerData(id){
         w: 20,
         speed: 10,
         color: RandomColor(),
-        hp: 10,
-        maxHp: 10,
+        hp: 5,
+        maxHp: 5,
         maxBullet: 4,
         maxCoolDown: 80
     }
