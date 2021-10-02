@@ -133,7 +133,6 @@ function UserInterface(){
     function OnStartMatch(data){
         document.getElementById('cvs').classList.add('show');
         clientHome.classList.remove('show');
-        console.log(data.players);
         for(const player of data.players){
             if(player){
                 PLAYER_OFFSET[player.id] = {
